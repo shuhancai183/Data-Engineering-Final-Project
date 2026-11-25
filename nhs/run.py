@@ -29,7 +29,7 @@ from .tasks import Context, build_context
 
 RUN_FIELDS = [
     "run_id", "exp", "task", "pos_rate", "seed", "budget", "batch_size", "method", "base_method",
-    "params", "label_source", "flip_rate", "n_rows", "n_pos", "base_rate",
+    "params", "label_source", "flip_rate", "test_frac", "n_rows", "n_pos", "base_rate",
     "pos_found", "pos_found_gold", "pos_per_call", "subtypes_covered", "n_subtypes", "subtype_coverage",
     "proxy_trained", "proxy_precision", "proxy_recall", "proxy_f1", "proxy_macro_f1", "n_eval",
     "e2e_precision", "e2e_recall", "e2e_f1",
@@ -113,7 +113,7 @@ def run_one(ctx: Context, method: str, params: dict | None, budget: int, batch_s
     yp = (predict_proba(model, ctx.emb[ev]) >= 0.5).astype(int) if model is not None else np.zeros(len(yt), int)
     p, r, f1 = prf(yt, yp)
     e2e = ("", "", "")
-    if ctx.has_full_gold and ctx.eval_mask is None:
+    if ctx.has_full_gold:  # query result over the whole table: bought labels + proxy elsewhere
         pred = (predict_proba(model, ctx.emb) >= 0.5).astype(int) if model is not None else np.zeros(n, int)
         pred[Li] = Yi
         e2e = prf(ctx.y, pred)
@@ -188,6 +188,7 @@ def main():
     seeds = cfg.get("seeds", [0])
     label_source = cfg.get("label_source", "gold")
     flips = cfg.get("flip_rates", [0.0])
+    test_frac = float(cfg.get("test_frac", 0.3))
     methods = {m: p for m, p in cfg["methods"].items() if not args.methods or m in args.methods}
     commit = git_commit()
 
@@ -200,11 +201,12 @@ def main():
                         for m, params in methods.items():
                             base, full = resolve(m, params)
                             ph = hashlib.sha1(json.dumps(full, sort_keys=True).encode()).hexdigest()[:8]
-                            run_id = f"{task}|{pr_key(pos_rate)}|b{budget}|{m}|{ph}|s{seed}|{label_source}|f{flip:g}"
+                            run_id = (f"{task}|{pr_key(pos_rate)}|b{budget}|{m}|{ph}|s{seed}|{label_source}"
+                                      f"|f{flip:g}|t{test_frac:g}")
                             if run_id in done:
                                 continue
                             if ctx is None:
-                                ctx = build_context(task, pos_rate, seed, model_name, label_source)
+                                ctx = build_context(task, pos_rate, seed, model_name, label_source, test_frac)
                             labeler = Labeler(ctx.labels, flip, seed)
                             summary, trace, _ = run_one(ctx, m, params, budget, batch_size, seed, labeler)
                             n_pos = int((ctx.y == 1).sum())
@@ -212,7 +214,8 @@ def main():
                                 "run_id": run_id, "exp": exp, "task": task, "pos_rate": pr_key(pos_rate),
                                 "seed": seed, "budget": budget, "batch_size": batch_size, "method": m,
                                 "base_method": base, "params": json.dumps(full, sort_keys=True),
-                                "label_source": label_source, "flip_rate": flip, "n_rows": len(ctx.y),
+                                "label_source": label_source, "flip_rate": flip, "test_frac": test_frac,
+                                "n_rows": len(ctx.y),
                                 "n_pos": n_pos, "base_rate": n_pos / max(1, int((ctx.y >= 0).sum())),
                                 "embed_model": model_name, "git_commit": commit, **summary,
                             }

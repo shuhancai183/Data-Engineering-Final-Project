@@ -92,7 +92,7 @@ Runs are resumable: `nhs.run` skips runs already in `results/<exp>/runs.csv`.
 (mean ± std tables and paired comparisons), `figures/*.png`.
 
 Metrics per run: positives found (and per LLM call), subtypes covered, proxy precision / recall / F1
-on rows the sampler did not label, end-to-end F1 (bought labels + proxy), time per round.
+on a fixed held-out test set, end-to-end F1 over the whole table (bought labels + proxy), time per round.
 
 ## Layout
 
@@ -112,6 +112,10 @@ docs/SPEC.md          original build specification
 
 ## Design decisions and deviations
 
+- **Fixed held-out test set.** Each (sub)table keeps a stratified random 30% that no sampler may label;
+  proxy F1 is measured there, so every method is scored on the same rows. Scoring on "rows the sampler
+  did not label" is biased: a sampler that harvests the easy positives is then scored only on the hard
+  leftovers (we saw proxy F1 = 0 for SEALS on 20NG this way). On `lts_shark` the test set is the expert rows.
 - **Gold labels as a perfect LLM** on datasets with complete human labels; `flip_rate` in a config
   simulates a weaker labeler. Real LLM labels are used where gold labels are incomplete (`lts_shark`).
 - **Clusters are fitted on each (sub)table**, never on the full table with all positives, so the index

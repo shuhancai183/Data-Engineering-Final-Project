@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from nhs.labelers import Labeler  # noqa: E402
 from nhs.metrics import macro_f1, prf  # noqa: E402
 from nhs.run import run_one  # noqa: E402
-from nhs.tasks import Context, subset_indices  # noqa: E402
+from nhs.tasks import Context, holdout_mask, subset_indices  # noqa: E402
 
 METHODS = {
     "random": {},
@@ -62,6 +62,15 @@ def test_subset_indices_rate_and_strata():
     assert np.array_equal(idx, subset_indices(y, subtype, 0.01, seed=3))
     assert not np.array_equal(idx, subset_indices(y, subtype, 0.01, seed=4))
     assert len(subset_indices(y, subtype, None, 0)) == len(y)
+
+
+def test_holdout_mask_is_stratified_and_deterministic():
+    y = np.r_[np.zeros(1000, int), np.ones(40, int)]
+    subtype = np.r_[-np.ones(1000, int), np.repeat([0, 1, 2, 3], 10)]
+    m = holdout_mask(y, subtype, 0.3, seed=5)
+    assert m[y == 0].sum() == 300
+    assert all(m[(y == 1) & (subtype == s)].sum() == 3 for s in range(4))
+    assert np.array_equal(m, holdout_mask(y, subtype, 0.3, seed=5))
 
 
 def test_samplers_respect_budget_pool_and_determinism():

@@ -174,15 +174,35 @@ def _lda(ctx: Context, k: int) -> np.ndarray:
     return lda.transform(X).argmax(axis=1)
 
 
+def holdout_mask(y: np.ndarray, subtype: np.ndarray, frac: float, seed: int) -> np.ndarray:
+    """Stratified random test set (negatives, and positives per subtype) that is never sampled."""
+    rng = np.random.default_rng([seed, 2027])
+    mask = np.zeros(len(y), dtype=bool)
+    strata = np.where(y == 1, subtype, -2)
+    for s in np.unique(strata):
+        rows = np.flatnonzero(strata == s)
+        n = int(round(frac * len(rows)))
+        if n:
+            mask[rng.choice(rows, size=n, replace=False)] = True
+    return mask
+
+
 def build_context(task: str, pos_rate: float | None = None, seed: int = 0,
-                  model: str = DEFAULT_MODEL, label_source: str = "gold") -> Context:
+                  model: str = DEFAULT_MODEL, label_source: str = "gold", test_frac: float = 0.3) -> Context:
+    """Sub-table for (task, pos_rate, seed). Rows are split into a sampling pool and a fixed test set:
+    the expert-labeled rows when the task has them, otherwise a stratified random ``test_frac``."""
     td = load_task(task, model)
     idx = subset_indices(td.y, td.subtype, pos_rate, seed)
     if label_source == "gold":
         labels = td.y
     else:  # cached LLM labels, e.g. label_source="llm_gpt-4o-mini" -> data/<task>/labels_llm_gpt-4o-mini.npy
         labels = np.load(DATA / task / f"labels_{label_source}.npy").astype(np.int64)
-    eval_mask = None if td.eval_mask is None else td.eval_mask[idx]
+    if td.eval_mask is not None:
+        eval_mask = td.eval_mask[idx]
+    elif test_frac > 0:
+        eval_mask = holdout_mask(td.y[idx], td.subtype[idx], test_frac, seed)
+    else:
+        eval_mask = None
     pool = np.ones(len(idx), dtype=bool) if eval_mask is None else ~eval_mask
     return Context(
         task=task,

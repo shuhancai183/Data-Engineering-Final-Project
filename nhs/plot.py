@@ -105,7 +105,7 @@ def fig_f1_vs_rate(runs, out: Path):
                         linewidth=2, marker="o", markersize=5, capsize=2, elinewidth=1)
         ax.set_xscale("log")
         ax.set_xlabel("share of positives in the table (log scale)")
-        ax.set_ylabel("proxy F1 on unseen rows")
+        ax.set_ylabel("proxy F1 on held-out test set")
         ax.set_ylim(0, 1)
         ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:g}%"))
         ax.set_title(TASK_NAMES.get(task, task), loc="left")
@@ -197,8 +197,10 @@ def _ms(s: pd.Series, fmt="{:.3f}") -> str:
 def summary_md(runs, exp: str, out_md: Path, ref: str = "qsb"):
     lines = [f"# Results: {exp}", "",
              f"Mean ± std over seeds. Budget = {sorted(runs.budget.unique())} LLM labels. "
-             "F1 is the proxy's F1 against gold labels on rows it did not label (LTS shark: expert rows). "
-             "End-to-end F1 uses bought labels for labeled rows and the proxy for the rest.", ""]
+             "Proxy F1 / precision / recall: against gold labels on a fixed held-out test set that no sampler "
+             "may label (30% of the table, stratified; LTS shark: the expert-labeled ads). "
+             "End-to-end F1: the query result over the whole table, using bought labels for labeled rows "
+             "and the proxy for every other row.", ""]
     for (task, pr), df in runs.groupby(["task", "pos_rate"], sort=False):
         lines += [f"## {TASK_NAMES.get(task, task)}, pos_rate = {pr} "
                   f"({df.base_rate.mean() * 100:.3g}% positives, {int(df.n_pos.mean())} of {int(df.n_rows.mean())} rows)", ""]
