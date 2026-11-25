@@ -1,0 +1,19 @@
+# Hand-written keyword list (placeholder for an LLM-generated list). One keyword or phrase per line.
+shark
+sharks
+jaw
+jaws
+tooth
+teeth
+fin
+fins
+hammerhead
+mako
+great white
+tiger shark
+bull shark
+shark skin
+sharkskin
+cartilage
+vertebra
+taxidermy

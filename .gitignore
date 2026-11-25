@@ -1,0 +1,21 @@
+# data, caches and logs are rebuilt by the scripts
+data/
+cache/
+logs/
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# secrets
+.env
+*.key
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

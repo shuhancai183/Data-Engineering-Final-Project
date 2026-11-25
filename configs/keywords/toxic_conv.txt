@@ -1,0 +1,37 @@
+# Hand-written keyword list (placeholder for an LLM-generated list). One keyword or phrase per line.
+idiot
+idiots
+idiotic
+stupid
+moron
+morons
+dumb
+fool
+fools
+loser
+losers
+pathetic
+disgusting
+hate
+racist
+bigot
+scum
+trash
+garbage
+liar
+liars
+shut up
+clown
+clowns
+ignorant
+imbecile
+jerk
+crap
+ass
+damn
+fuck
+fucking
+shit
+bitch
+bastard
+kill

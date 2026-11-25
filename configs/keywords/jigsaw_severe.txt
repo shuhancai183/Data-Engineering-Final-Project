@@ -1,0 +1,27 @@
+# Hand-written keyword list (placeholder for an LLM-generated list). One keyword or phrase per line.
+# threat
+kill
+murder
+die
+shoot
+stab
+hurt
+rape
+bomb
+# identity-related terms (frequent in identity hate)
+gay
+jew
+jews
+muslim
+muslims
+black
+nazi
+immigrant
+immigrants
+# severe profanity
+fuck
+fucking
+motherfucker
+cunt
+shit
+bitch

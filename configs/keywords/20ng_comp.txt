@@ -1,0 +1,46 @@
+# Hand-written keyword list (placeholder for an LLM-generated list). One keyword or phrase per line.
+computer
+computers
+pc
+pcs
+mac
+macintosh
+ibm
+windows
+dos
+ms-dos
+os/2
+unix
+x11
+xterm
+motif
+x window
+software
+hardware
+driver
+drivers
+graphics
+vga
+svga
+monitor
+disk
+hard drive
+floppy
+scsi
+ide
+controller
+ram
+cpu
+motherboard
+modem
+printer
+keyboard
+mouse
+bios
+jpeg
+gif
+pixel
+workstation
+mhz
+486
+386

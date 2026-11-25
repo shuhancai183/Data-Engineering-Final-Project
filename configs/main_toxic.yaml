@@ -1,0 +1,16 @@
+# Chung et al. benchmark. "null" = natural rate (reproduction setting), then rare regimes.
+exp: main_toxic
+embed_model: sentence-transformers/all-MiniLM-L6-v2
+tasks:
+  toxic_conv: {pos_rates: [null, 0.01, 0.005, 0.001]}
+budgets: [500]
+batch_size: 25
+seeds: [0, 1, 2, 3, 4]
+label_source: gold
+methods:
+  random: {}
+  topk: {}
+  keyword: {}
+  seals_mlp: {}
+  lts_lr: {}
+  qsb: {}

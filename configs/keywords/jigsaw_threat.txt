@@ -1,0 +1,25 @@
+# Hand-written keyword list (placeholder for an LLM-generated list). One keyword or phrase per line.
+kill
+killing
+murder
+die
+dead
+death
+shoot
+gun
+stab
+beat
+punch
+hurt
+burn
+destroy
+hunt you
+find you
+rape
+bomb
+blow up
+hang
+choke
+strangle
+smash
+threat

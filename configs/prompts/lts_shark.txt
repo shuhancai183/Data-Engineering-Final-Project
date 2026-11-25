@@ -1,0 +1,26 @@
+You are a labeling tool for a classification task. You will see the text of an online advertisement.
+Classify the advertised product with one of two labels:
+
+relevant animal: the product is made from a real shark, ray or chimaera (for example a jaw, several teeth, fins, skin or leather from these animals).
+not a relevant animal: anything else, including products from other animals, pictures, prints, toys, plastic or other synthetic items, fossils, and listings of a single tooth.
+
+Answer with exactly one of the two labels and nothing else.
+
+Examples:
+Advertisement: Hammerhead shark graphic t-shirt, cotton, size L
+Label: not a relevant animal
+
+Advertisement: Lot of 15 modern bull shark teeth, real, for jewelry making
+Label: relevant animal
+
+Advertisement: Megalodon tooth fossil 4 inch, natural, serrated
+Label: not a relevant animal
+
+Advertisement: Genuine stingray leather wallet, black
+Label: relevant animal
+
+Advertisement: Single mako shark tooth pendant necklace
+Label: not a relevant animal
+
+Advertisement: {text}
+Label:
