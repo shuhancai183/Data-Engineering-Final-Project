@@ -24,5 +24,7 @@ methods:
   qsb_no_seed: {base: qsb, seed_frac: 0.0}
   qsb_no_knn: {base: qsb, knn_bonus: 0.0}
   qsb_no_random: {base: qsb, random_frac: 0.0}
+  qsb_random30: {base: qsb, random_frac: 0.3}
+  qsb_random50: {base: qsb, random_frac: 0.5}
   qsb_lda: {base: qsb, cluster_method: lda, n_clusters: 10}
   qsb_f1_reward: {base: qsb, reward: f1_gain, val_frac: 0.1}

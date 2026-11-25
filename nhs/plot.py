@@ -187,6 +187,13 @@ def fig_timing(runs, out: Path):
     plt.close(fig)
 
 
+def sign_test_p(wins: int, n: int) -> float:
+    """One-sided sign test: P(at least `wins` successes out of n fair coin flips)."""
+    from math import comb
+
+    return sum(comb(n, k) for k in range(wins, n + 1)) / 2 ** n
+
+
 def _ms(s: pd.Series, fmt="{:.3f}") -> str:
     s = pd.to_numeric(s, errors="coerce").dropna()
     if s.empty:
@@ -223,10 +230,41 @@ def summary_md(runs, exp: str, out_md: Path, ref: str = "qsb"):
                 common = a.index.intersection(b.index)
                 if len(common) == 0:
                     continue
+                n = len(common)
                 win_f1 = int((a.loc[common, "proxy_f1"] > b.loc[common, "proxy_f1"]).sum())
+                win_e2e = int((pd.to_numeric(a.loc[common, "e2e_f1"], errors="coerce")
+                               > pd.to_numeric(b.loc[common, "e2e_f1"], errors="coerce")).sum())
                 win_pos = int((a.loc[common, "pos_found"] > b.loc[common, "pos_found"]).sum())
-                notes.append(f"{_label(m)}: higher F1 in {win_f1}/{len(common)} seeds, more positives in {win_pos}/{len(common)}")
-            lines += ["", f"Paired by seed, {_label(ref)} vs " + "; ".join(notes) + "."]
+                notes.append(
+                    f"{_label(m)}: proxy F1 higher in {win_f1}/{n} (p={sign_test_p(win_f1, n):.3f}), "
+                    f"end-to-end F1 higher in {win_e2e}/{n}, more positives in {win_pos}/{n}")
+            lines += ["", f"Paired by seed (one-sided sign test), {_label(ref)} vs:"] + [f"- {s}" for s in notes]
+        lines.append("")
+    out_md.write_text("\n".join(lines), encoding="utf-8")
+
+
+def paper_tables(exps: list[str], out_md: Path):
+    """One compact table per metric: rows = dataset x positive rate, columns = methods, best in bold."""
+    runs = pd.concat([load(e)[0] for e in exps], ignore_index=True)
+    runs = runs[runs.method.isin(ORDER) & (runs.flip_rate == 0)]
+    methods = [m for m in ORDER if m in set(runs.method)]
+    metrics = [("proxy_f1", "Proxy F1 on the held-out test set", "{:.3f}"),
+               ("e2e_f1", "End-to-end F1 of the query result", "{:.3f}"),
+               ("pos_found", "Positives found with the budget", "{:.1f}")]
+    lines = ["# Main results (mean over seeds; best per row in bold)", ""]
+    for col, title, fmt in metrics:
+        lines += [f"## {title}", "", "| dataset | positives | " + " | ".join(_label(m) for m in methods) + " |",
+                  "|---|---|" + "---|" * len(methods)]
+        for (task, budget, pr), df in runs.groupby(["task", "budget", "pos_rate"], sort=False):
+            means = {m: pd.to_numeric(df[df.method == m][col], errors="coerce").mean() for m in methods}
+            best = max((v for v in means.values() if pd.notna(v)), default=None)
+            cells = []
+            for m in methods:
+                v = means[m]
+                s = "-" if pd.isna(v) else fmt.format(v)
+                cells.append(f"**{s}**" if best is not None and pd.notna(v) and v == best else s)
+            lines.append(f"| {TASK_NAMES.get(task, task)} (budget {budget}) | {df.base_rate.mean() * 100:.2g}% | "
+                         + " | ".join(cells) + " |")
         lines.append("")
     out_md.write_text("\n".join(lines), encoding="utf-8")
 
@@ -235,7 +273,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--exp", nargs="+", required=True)
     ap.add_argument("--ref", default="qsb", help="method used for the paired comparison in summary.md")
+    ap.add_argument("--paper", action="store_true", help="also write results/paper_tables.md over all --exp")
     args = ap.parse_args()
+    if args.paper:
+        paper_tables(args.exp, RESULTS / "paper_tables.md")
+        print(f"paper tables -> {RESULTS / 'paper_tables.md'}")
     for exp in args.exp:
         runs, traces = load(exp)
         out = RESULTS / exp / "figures"
