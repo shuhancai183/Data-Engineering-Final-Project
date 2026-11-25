@@ -1,0 +1,107 @@
+{
+  "exp": "ablation",
+  "embed_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "tasks": {
+    "20ng_comp": {
+      "pos_rates": [
+        0.01
+      ]
+    },
+    "toxic_conv": {
+      "pos_rates": [
+        0.005
+      ]
+    }
+  },
+  "budgets": [
+    500
+  ],
+  "batch_size": 25,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "label_source": "gold",
+  "methods": {
+    "path0_lts_lr": {
+      "base": "lts_lr"
+    },
+    "path1_pos_reward": {
+      "base": "lts_lr",
+      "reward": "positive",
+      "val_frac": 0.0
+    },
+    "path2_kmeans": {
+      "base": "lts_lr",
+      "reward": "positive",
+      "val_frac": 0.0,
+      "cluster_method": "kmeans",
+      "n_clusters": 50
+    },
+    "path3_per_slot_score": {
+      "base": "lts_lr",
+      "reward": "positive",
+      "val_frac": 0.0,
+      "cluster_method": "kmeans",
+      "n_clusters": 50,
+      "per_slot": true,
+      "in_cluster": "score"
+    },
+    "path4_query_prior_seed": {
+      "base": "lts_lr",
+      "reward": "positive",
+      "val_frac": 0.0,
+      "cluster_method": "kmeans",
+      "n_clusters": 50,
+      "per_slot": true,
+      "in_cluster": "score",
+      "prior": "query",
+      "a0": 1.0,
+      "b0": 1.0,
+      "prior_strength": 5.0,
+      "seed_frac": 0.1,
+      "seed_cap": 3,
+      "decay": 1.0
+    },
+    "path5_qsb": {
+      "base": "qsb"
+    },
+    "qsb_no_prior": {
+      "base": "qsb",
+      "prior": "none"
+    },
+    "qsb_no_seed": {
+      "base": "qsb",
+      "seed_frac": 0.0
+    },
+    "qsb_no_knn": {
+      "base": "qsb",
+      "knn_bonus": 0.0
+    },
+    "qsb_no_random": {
+      "base": "qsb",
+      "random_frac": 0.0
+    },
+    "qsb_random30": {
+      "base": "qsb",
+      "random_frac": 0.3
+    },
+    "qsb_random50": {
+      "base": "qsb",
+      "random_frac": 0.5
+    },
+    "qsb_lda": {
+      "base": "qsb",
+      "cluster_method": "lda",
+      "n_clusters": 10
+    },
+    "qsb_f1_reward": {
+      "base": "qsb",
+      "reward": "f1_gain",
+      "val_frac": 0.1
+    }
+  }
+}

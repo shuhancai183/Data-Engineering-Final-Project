@@ -273,7 +273,8 @@ def paper_tables(exps: list[str], out_md: Path):
                   "|---|---|" + "---|" * len(methods)]
         for (task, budget, pr), df in runs.groupby(["task", "budget", "pos_rate"], sort=False):
             means = {m: pd.to_numeric(df[df.method == m][col], errors="coerce").mean() for m in methods}
-            best = max((v for v in means.values() if pd.notna(v)), default=None)
+            vals = [v for v in means.values() if pd.notna(v)]
+            best = max(vals) if vals and max(vals) > min(vals) else None  # no bold when all tie
             cells = []
             for m in methods:
                 v = means[m]
