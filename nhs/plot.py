@@ -210,6 +210,30 @@ def sign_test_p(wins: int, n: int) -> float:
     return sum(comb(n, k) for k in range(wins, n + 1)) / 2 ** n
 
 
+def fig_vs(runs, xcol: str, xlabel: str, out: Path, fname: str):
+    """Proxy F1 and positives found against one experimental factor (budget or label flip rate)."""
+    fig, axes = plt.subplots(1, 2, figsize=(9.6, 3.4))
+    pos_label = "rows labeled positive (incl. flipped)" if xcol == "flip_rate" else "positives found"
+    for ax, col, ylabel in ((axes[0], "proxy_f1", "proxy F1 on held-out test set"),
+                            (axes[1], "pos_found", pos_label)):
+        for m in _methods(runs):
+            g = runs[runs.method == m].groupby(xcol)[col].agg(["mean", "std"]).sort_index()
+            ax.errorbar(g.index, g["mean"], yerr=g["std"].fillna(0), color=_color(m), label=_label(m),
+                        linewidth=2, marker="o", markersize=5, capsize=2, elinewidth=1)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_xticks(sorted(runs[xcol].unique()))
+        ax.set_ylim(bottom=0)
+        _style(ax)
+    task = runs.task.iloc[0]
+    fig.suptitle(f"{TASK_NAMES.get(task, task)}, {_pct(runs.base_rate.mean())} positives",
+                 x=0.01, ha="left", fontsize=11, color=TEXT)
+    axes[0].legend(loc="best")
+    fig.tight_layout()
+    fig.savefig(out / fname, dpi=200)
+    plt.close(fig)
+
+
 def fig_ablation(runs, out: Path, highlight: str):
     """Bars per method variant (config order) for proxy F1 and positives found, one row per task."""
     tasks = list(dict.fromkeys(runs["task"]))
@@ -252,8 +276,10 @@ def summary_md(runs, exp: str, out_md: Path, ref: str = "qsb"):
              "may label (30% of the table, stratified; LTS shark: the expert-labeled ads). "
              "End-to-end F1: the query result over the whole table, using bought labels for labeled rows "
              "and the proxy for every other row.", ""]
-    for (task, pr), df in runs.groupby(["task", "pos_rate"], sort=False):
-        lines += [f"## {TASK_NAMES.get(task, task)}, pos_rate = {pr} "
+    for (task, pr, budget, flip), df in runs.groupby(["task", "pos_rate", "budget", "flip_rate"], sort=False):
+        extra = f", budget = {budget}" if runs.budget.nunique() > 1 else ""
+        extra += f", label flip rate = {flip:g}" if runs.flip_rate.nunique() > 1 else ""
+        lines += [f"## {TASK_NAMES.get(task, task)}, pos_rate = {pr}{extra} "
                   f"({df.base_rate.mean() * 100:.3g}% positives, {int(df.n_pos.mean())} of {int(df.n_rows.mean())} rows)", ""]
         lines += ["| method | positives found | subtypes found | proxy F1 | precision | recall | end-to-end F1 | ms / round |",
                   "|---|---|---|---|---|---|---|---|"]
@@ -328,7 +354,11 @@ def main():
         out = RESULTS / exp / "figures"
         out.mkdir(parents=True, exist_ok=True)
         ref = args.ref if args.ref in set(runs.method) else runs.method.iloc[0]
-        if runs.groupby("task")["pos_rate"].nunique().max() == 1 and not set(runs.method) <= set(ORDER):
+        if runs.budget.nunique() > 1:
+            fig_vs(runs, "budget", "LLM label budget", out, "vs_budget.png")
+        elif runs.flip_rate.nunique() > 1:
+            fig_vs(runs, "flip_rate", "share of flipped labels (simulated weaker LLM)", out, "vs_label_noise.png")
+        elif runs.groupby("task")["pos_rate"].nunique().max() == 1 and not set(runs.method) <= set(ORDER):
             fig_ablation(runs, out, ref)  # one rate per task and custom variants: ablation layout
         else:
             fig_f1_vs_rate(runs, out)

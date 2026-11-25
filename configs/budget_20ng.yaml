@@ -1,0 +1,15 @@
+# How results change with the LLM label budget on the dataset where proxies can learn (500 is in main_20ng).
+exp: budget_20ng
+embed_model: sentence-transformers/all-MiniLM-L6-v2
+tasks:
+  20ng_comp: {pos_rates: [0.01]}
+budgets: [200, 500, 1000]
+batch_size: 25
+seeds: [0, 1, 2, 3, 4]
+label_source: gold
+methods:
+  random: {}
+  topk: {}
+  seals_mlp: {}
+  lts_lr: {}
+  qsb: {}

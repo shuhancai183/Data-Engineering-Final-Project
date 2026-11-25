@@ -9,7 +9,7 @@ budgets: [500]
 batch_size: 25
 seeds: [0, 1, 2, 3, 4]
 label_source: gold
-flip_rates: [0.01, 0.02, 0.05]
+flip_rates: [0.0, 0.01, 0.02, 0.05]
 methods:
   random: {}
   topk: {}

@@ -21,6 +21,7 @@
   ],
   "label_source": "gold",
   "flip_rates": [
+    0.0,
     0.01,
     0.02,
     0.05

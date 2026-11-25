@@ -1,0 +1,17 @@
+# Weaker labeler on 20NG at 1% positives: a fixed random share of the labels is flipped
+# (0 = gold, in main_20ng). Symmetric flips: at 1% positives a 1% flip rate already gives about as
+# many false positives as true positives among the labels.
+exp: noise_20ng
+embed_model: sentence-transformers/all-MiniLM-L6-v2
+tasks:
+  20ng_comp: {pos_rates: [0.01]}
+budgets: [500]
+batch_size: 25
+seeds: [0, 1, 2, 3, 4]
+label_source: gold
+flip_rates: [0.0, 0.01, 0.02, 0.05]
+methods:
+  random: {}
+  topk: {}
+  seals_mlp: {}
+  qsb: {}
