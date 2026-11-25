@@ -38,6 +38,17 @@ LABELS = {
 }
 ORDER = list(COLORS)
 TEXT, TEXT2, GRID, SURFACE = "#0b0b0b", "#52514e", "#e4e3df", "#fcfcfb"
+TASK_SHORT = {
+    "20ng_comp": "20NG",
+    "toxic_conv": "Toxic",
+    "jigsaw_threat": "Jigsaw threat",
+    "jigsaw_severe": "Jigsaw severe",
+    "lts_shark": "LTS shark",
+}
+
+
+def _pct(v: float) -> str:
+    return f"{v * 100:.2g}%"
 TASK_NAMES = {
     "20ng_comp": "20 Newsgroups (comp.*)",
     "toxic_conv": "Toxic Conversations",
@@ -107,7 +118,11 @@ def fig_f1_vs_rate(runs, out: Path):
         ax.set_xlabel("share of positives in the table (log scale)")
         ax.set_ylabel("proxy F1 on held-out test set")
         ax.set_ylim(0, 1)
-        ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:g}%"))
+        ticks = sorted(x_of.values)
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([_pct(v) + ("\n(natural)" if pr == "natural" else "")
+                            for v, pr in sorted(zip(x_of.values, x_of.index))])
+        ax.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
         ax.set_title(TASK_NAMES.get(task, task), loc="left")
         _style(ax)
     axes[0][0].legend(loc="upper left")
@@ -158,7 +173,7 @@ def fig_coverage(runs, out: Path):
         xs = np.arange(len(groups)) + (j - (len(methods) - 1) / 2) * w
         ax.bar(xs, vals, width=w * 0.92, color=_color(m), label=_label(m))
     ax.set_xticks(np.arange(len(groups)))
-    ax.set_xticklabels([f"{TASK_NAMES.get(g.task, g.task)}\n{g.base_rate * 100:.2g}% positives" for _, g in groups.iterrows()], fontsize=8)
+    ax.set_xticklabels([f"{TASK_SHORT.get(g.task, g.task)}\n{_pct(g.base_rate)} positives" for _, g in groups.iterrows()], fontsize=8)
     ax.set_ylabel("share of positive subtypes found")
     ax.set_ylim(0, 1.05)
     _style(ax)
@@ -174,8 +189,9 @@ def fig_timing(runs, out: Path):
     fig, ax = plt.subplots(figsize=(6, 2.8))
     ax.barh([_label(m) for m in methods], [g[m] for m in methods], color=[_color(m) for m in methods], height=0.6)
     for i, m in enumerate(methods):
-        ax.text(g[m] * 1.08, i, f"{g[m]:.1f} ms", va="center", fontsize=8, color=TEXT2)
+        ax.text(g[m] * 1.08, i, f"{g[m]:.2g} ms", va="center", fontsize=8, color=TEXT2)
     ax.set_xscale("log")
+    ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
     ax.set_xlabel("time per round: select + update (ms, log scale)")
     ax.invert_yaxis()
     for s in ("top", "right"):
