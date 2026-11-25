@@ -102,9 +102,9 @@ def load(exp: str):
     return runs, traces
 
 
-def fig_f1_vs_rate(runs, out: Path):
+def fig_f1_vs_rate(runs, out: Path, suffix: str = ""):
     tasks = list(dict.fromkeys(runs["task"]))
-    fig, axes = plt.subplots(1, len(tasks), figsize=(4.6 * len(tasks), 3.4), squeeze=False)
+    fig, axes = plt.subplots(1, len(tasks), figsize=(4.6 * len(tasks) + 1.6, 3.4), squeeze=False)
     for ax, task in zip(axes[0], tasks):
         df = runs[runs.task == task]
         x_of = df.groupby("pos_rate")["base_rate"].mean()
@@ -125,13 +125,13 @@ def fig_f1_vs_rate(runs, out: Path):
         ax.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
         ax.set_title(TASK_NAMES.get(task, task), loc="left")
         _style(ax)
-    axes[0][0].legend(loc="upper left")
+    axes[0][-1].legend(loc="upper left", bbox_to_anchor=(1.02, 1.0))
     fig.tight_layout()
-    fig.savefig(out / "f1_vs_posrate.png", dpi=200)
+    fig.savefig(out / f"f1_vs_posrate{suffix}.png", dpi=200)
     plt.close(fig)
 
 
-def fig_pos_curves(runs, traces, out: Path):
+def fig_pos_curves(runs, traces, out: Path, suffix: str = ""):
     if traces is None:
         return
     t = traces.merge(runs[["run_id", "task", "pos_rate", "method", "base_rate"]], on="run_id")
@@ -155,11 +155,11 @@ def fig_pos_curves(runs, traces, out: Path):
         ax.axis("off")
     axes[0][0].legend(loc="upper left")
     fig.tight_layout()
-    fig.savefig(out / "positives_found_curves.png", dpi=200)
+    fig.savefig(out / f"positives_found_curves{suffix}.png", dpi=200)
     plt.close(fig)
 
 
-def fig_coverage(runs, out: Path):
+def fig_coverage(runs, out: Path, suffix: str = ""):
     df = runs[pd.to_numeric(runs["n_subtypes"], errors="coerce") > 1].copy()
     if df.empty:
         return
@@ -179,11 +179,11 @@ def fig_coverage(runs, out: Path):
     _style(ax)
     ax.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0))
     fig.tight_layout()
-    fig.savefig(out / "subtype_coverage.png", dpi=200)
+    fig.savefig(out / f"subtype_coverage{suffix}.png", dpi=200)
     plt.close(fig)
 
 
-def fig_timing(runs, out: Path):
+def fig_timing(runs, out: Path, suffix: str = ""):
     g = runs.groupby("method")["t_round_ms_mean"].mean()
     methods = [m for m in _methods(runs) if m in g.index]
     fig, ax = plt.subplots(figsize=(6, 2.8))
@@ -199,7 +199,7 @@ def fig_timing(runs, out: Path):
     ax.grid(axis="x", color=GRID, linewidth=0.8)
     ax.set_axisbelow(True)
     fig.tight_layout()
-    fig.savefig(out / "time_per_round.png", dpi=200)
+    fig.savefig(out / f"time_per_round{suffix}.png", dpi=200)
     plt.close(fig)
 
 
@@ -302,12 +302,13 @@ def summary_md(runs, exp: str, out_md: Path, ref: str = "qsb"):
                     continue
                 n = len(common)
                 win_f1 = int((a.loc[common, "proxy_f1"] > b.loc[common, "proxy_f1"]).sum())
-                win_e2e = int((pd.to_numeric(a.loc[common, "e2e_f1"], errors="coerce")
-                               > pd.to_numeric(b.loc[common, "e2e_f1"], errors="coerce")).sum())
+                ea = pd.to_numeric(a.loc[common, "e2e_f1"], errors="coerce")
+                eb = pd.to_numeric(b.loc[common, "e2e_f1"], errors="coerce")
+                e2e = "" if ea.isna().all() else f"end-to-end F1 higher in {int((ea > eb).sum())}/{n}, "
                 win_pos = int((a.loc[common, "pos_found"] > b.loc[common, "pos_found"]).sum())
                 notes.append(
                     f"{_label(m)}: proxy F1 higher in {win_f1}/{n} (p={sign_test_p(win_f1, n):.3f}), "
-                    f"end-to-end F1 higher in {win_e2e}/{n}, more positives in {win_pos}/{n}")
+                    f"{e2e}more positives in {win_pos}/{n}")
             lines += ["", f"Paired by seed (one-sided sign test), {_label(ref)} vs:"] + [f"- {s}" for s in notes]
         lines.append("")
     out_md.write_text("\n".join(lines), encoding="utf-8")
@@ -354,11 +355,21 @@ def main():
         out = RESULTS / exp / "figures"
         out.mkdir(parents=True, exist_ok=True)
         ref = args.ref if args.ref in set(runs.method) else runs.method.iloc[0]
-        if runs.budget.nunique() > 1:
+        several_rates = runs.groupby("task")["pos_rate"].nunique().max() > 1
+        if several_rates:  # main layout, one set of figures per budget
+            for b in sorted(runs.budget.unique()):
+                rb = runs[runs.budget == b]
+                sfx = f"_b{b}" if runs.budget.nunique() > 1 else ""
+                tb = traces[traces.run_id.isin(rb.run_id)] if traces is not None else None
+                fig_f1_vs_rate(rb, out, sfx)
+                fig_pos_curves(rb, tb, out, sfx)
+                fig_coverage(rb, out, sfx)
+                fig_timing(rb, out, sfx)
+        elif runs.budget.nunique() > 1:
             fig_vs(runs, "budget", "LLM label budget", out, "vs_budget.png")
         elif runs.flip_rate.nunique() > 1:
             fig_vs(runs, "flip_rate", "share of flipped labels (simulated weaker LLM)", out, "vs_label_noise.png")
-        elif runs.groupby("task")["pos_rate"].nunique().max() == 1 and not set(runs.method) <= set(ORDER):
+        elif not set(runs.method) <= set(ORDER):
             fig_ablation(runs, out, ref)  # one rate per task and custom variants: ablation layout
         else:
             fig_f1_vs_rate(runs, out)

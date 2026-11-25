@@ -21,20 +21,20 @@ Mean ± std over seeds. Budget = [np.int64(500)] LLM labels. Proxy F1 / precisio
 | qsb_lda | 70.6 ± 6.8 | 5.0 / 5 | 0.425 ± 0.035 | 0.396 ± 0.071 | 0.480 ± 0.096 | 0.642 ± 0.061 | 14.6 |
 | qsb_f1_reward | 30.0 ± 6.7 | 4.6 / 5 | 0.391 ± 0.078 | 0.367 ± 0.087 | 0.430 ± 0.086 | 0.485 ± 0.070 | 12.0 |
 
-Paired by seed (one-sided sign test), path5_qsb vs:
-- path0_lts_lr: proxy F1 higher in 5/5 (p=0.031), end-to-end F1 higher in 5/5, more positives in 5/5
-- path1_pos_reward: proxy F1 higher in 5/5 (p=0.031), end-to-end F1 higher in 5/5, more positives in 5/5
-- path2_kmeans: proxy F1 higher in 5/5 (p=0.031), end-to-end F1 higher in 5/5, more positives in 5/5
-- path3_per_slot_score: proxy F1 higher in 5/5 (p=0.031), end-to-end F1 higher in 4/5, more positives in 4/5
-- path4_query_prior_seed: proxy F1 higher in 4/5 (p=0.188), end-to-end F1 higher in 0/5, more positives in 0/5
-- qsb_no_prior: proxy F1 higher in 5/5 (p=0.031), end-to-end F1 higher in 5/5, more positives in 5/5
-- qsb_no_seed: proxy F1 higher in 4/5 (p=0.188), end-to-end F1 higher in 4/5, more positives in 3/5
-- qsb_no_knn: proxy F1 higher in 4/5 (p=0.188), end-to-end F1 higher in 0/5, more positives in 0/5
-- qsb_no_random: proxy F1 higher in 3/5 (p=0.500), end-to-end F1 higher in 1/5, more positives in 0/5
-- qsb_random30: proxy F1 higher in 1/5 (p=0.969), end-to-end F1 higher in 4/5, more positives in 4/5
-- qsb_random50: proxy F1 higher in 3/5 (p=0.500), end-to-end F1 higher in 5/5, more positives in 5/5
-- qsb_lda: proxy F1 higher in 5/5 (p=0.031), end-to-end F1 higher in 3/5, more positives in 0/5
-- qsb_f1_reward: proxy F1 higher in 5/5 (p=0.031), end-to-end F1 higher in 5/5, more positives in 5/5
+Paired by seed (one-sided sign test), path0_lts_lr vs:
+- path1_pos_reward: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- path2_kmeans: proxy F1 higher in 3/5 (p=0.500), end-to-end F1 higher in 4/5, more positives in 4/5
+- path3_per_slot_score: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- path4_query_prior_seed: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- path5_qsb: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_no_prior: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_no_seed: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_no_knn: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_no_random: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_random30: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_random50: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_lda: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_f1_reward: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
 
 ## Toxic Conversations, pos_rate = 0.005 (0.5% positives, 461 of 92140 rows)
 
@@ -55,17 +55,17 @@ Paired by seed (one-sided sign test), path5_qsb vs:
 | qsb_lda | 10.8 ± 4.4 | - | 0.006 ± 0.008 | 0.072 ± 0.110 | 0.003 ± 0.004 | 0.046 ± 0.018 | 25.2 |
 | qsb_f1_reward | 6.8 ± 4.3 | - | 0.016 ± 0.022 | 0.128 ± 0.264 | 0.012 ± 0.017 | 0.033 ± 0.023 | 17.7 |
 
-Paired by seed (one-sided sign test), path5_qsb vs:
-- path0_lts_lr: proxy F1 higher in 3/5 (p=0.500), end-to-end F1 higher in 5/5, more positives in 5/5
-- path1_pos_reward: proxy F1 higher in 3/5 (p=0.500), end-to-end F1 higher in 5/5, more positives in 5/5
-- path2_kmeans: proxy F1 higher in 3/5 (p=0.500), end-to-end F1 higher in 4/5, more positives in 4/5
-- path3_per_slot_score: proxy F1 higher in 2/5 (p=0.812), end-to-end F1 higher in 2/5, more positives in 2/5
-- path4_query_prior_seed: proxy F1 higher in 2/5 (p=0.812), end-to-end F1 higher in 4/5, more positives in 3/5
-- qsb_no_prior: proxy F1 higher in 2/5 (p=0.812), end-to-end F1 higher in 4/5, more positives in 4/5
-- qsb_no_seed: proxy F1 higher in 2/5 (p=0.812), end-to-end F1 higher in 4/5, more positives in 3/5
-- qsb_no_knn: proxy F1 higher in 1/5 (p=0.969), end-to-end F1 higher in 2/5, more positives in 1/5
-- qsb_no_random: proxy F1 higher in 2/5 (p=0.812), end-to-end F1 higher in 3/5, more positives in 2/5
-- qsb_random30: proxy F1 higher in 2/5 (p=0.812), end-to-end F1 higher in 4/5, more positives in 4/5
-- qsb_random50: proxy F1 higher in 1/5 (p=0.969), end-to-end F1 higher in 4/5, more positives in 4/5
-- qsb_lda: proxy F1 higher in 2/5 (p=0.812), end-to-end F1 higher in 4/5, more positives in 3/5
-- qsb_f1_reward: proxy F1 higher in 1/5 (p=0.969), end-to-end F1 higher in 5/5, more positives in 5/5
+Paired by seed (one-sided sign test), path0_lts_lr vs:
+- path1_pos_reward: proxy F1 higher in 1/5 (p=0.969), end-to-end F1 higher in 3/5, more positives in 3/5
+- path2_kmeans: proxy F1 higher in 1/5 (p=0.969), end-to-end F1 higher in 2/5, more positives in 1/5
+- path3_per_slot_score: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- path4_query_prior_seed: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- path5_qsb: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_no_prior: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 1/5, more positives in 0/5
+- qsb_no_seed: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_no_knn: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_no_random: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_random30: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_random50: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_lda: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 0/5, more positives in 0/5
+- qsb_f1_reward: proxy F1 higher in 0/5 (p=1.000), end-to-end F1 higher in 1/5, more positives in 0/5
