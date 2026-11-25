@@ -210,6 +210,34 @@ def sign_test_p(wins: int, n: int) -> float:
     return sum(comb(n, k) for k in range(wins, n + 1)) / 2 ** n
 
 
+def fig_ablation(runs, out: Path, highlight: str):
+    """Bars per method variant (config order) for proxy F1 and positives found, one row per task."""
+    tasks = list(dict.fromkeys(runs["task"]))
+    methods = list(dict.fromkeys(runs["method"]))
+    fig, axes = plt.subplots(len(tasks), 2, figsize=(11, 0.32 * len(methods) * len(tasks) + 1.2), squeeze=False)
+    for row, task in zip(axes, tasks):
+        df = runs[runs.task == task]
+        for ax, col, xlabel in ((row[0], "proxy_f1", "proxy F1 on held-out test set"),
+                                (row[1], "pos_found", "positives found with 500 labels")):
+            g = df.groupby("method")[col].agg(["mean", "std"]).reindex(methods)
+            colors = [COLORS["qsb"] if m == highlight else "#9b9a94" for m in methods]
+            sd = g["std"].fillna(0).to_numpy()
+            xerr = np.vstack([np.minimum(sd, g["mean"].to_numpy()), sd])  # never below zero
+            ax.barh(methods, g["mean"], xerr=xerr, color=colors, height=0.6,
+                    error_kw={"elinewidth": 1, "ecolor": TEXT2, "capsize": 2})
+            ax.invert_yaxis()
+            ax.set_xlabel(xlabel)
+            ax.set_title(f"{TASK_NAMES.get(task, task)}, {_pct(df.base_rate.mean())} positives", loc="left", fontsize=9)
+            for s in ("top", "right"):
+                ax.spines[s].set_visible(False)
+            ax.grid(axis="x", color=GRID, linewidth=0.8)
+            ax.set_axisbelow(True)
+        row[1].set_yticklabels([])
+    fig.tight_layout()
+    fig.savefig(out / "ablation.png", dpi=200)
+    plt.close(fig)
+
+
 def _ms(s: pd.Series, fmt="{:.3f}") -> str:
     s = pd.to_numeric(s, errors="coerce").dropna()
     if s.empty:
@@ -299,11 +327,14 @@ def main():
         runs, traces = load(exp)
         out = RESULTS / exp / "figures"
         out.mkdir(parents=True, exist_ok=True)
-        fig_f1_vs_rate(runs, out)
-        fig_pos_curves(runs, traces, out)
-        fig_coverage(runs, out)
-        fig_timing(runs, out)
         ref = args.ref if args.ref in set(runs.method) else runs.method.iloc[0]
+        if runs.groupby("task")["pos_rate"].nunique().max() == 1 and not set(runs.method) <= set(ORDER):
+            fig_ablation(runs, out, ref)  # one rate per task and custom variants: ablation layout
+        else:
+            fig_f1_vs_rate(runs, out)
+            fig_pos_curves(runs, traces, out)
+            fig_coverage(runs, out)
+            fig_timing(runs, out)
         summary_md(runs, exp, RESULTS / exp / "summary.md", ref)
         print(f"[{exp}] figures -> {out}, summary -> {RESULTS / exp / 'summary.md'}")
 
