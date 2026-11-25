@@ -1,0 +1,19 @@
+# Naturally rare predicates (Kaggle Jigsaw Toxic Comment Classification, human labels on every row).
+#  jigsaw_threat : threat, natural 0.30%
+#  jigsaw_severe : threat OR identity_hate OR severe_toxic (3 subtypes); natural rate, then 0.5%
+exp: main_jigsaw
+embed_model: sentence-transformers/all-MiniLM-L6-v2
+tasks:
+  jigsaw_threat: {pos_rates: [null]}
+  jigsaw_severe: {pos_rates: [null, 0.005]}
+budgets: [500]
+batch_size: 25
+seeds: [0, 1, 2, 3, 4]
+label_source: gold
+methods:
+  random: {}
+  topk: {}
+  keyword: {}
+  seals_mlp: {}
+  lts_lr: {}
+  qsb: {}
