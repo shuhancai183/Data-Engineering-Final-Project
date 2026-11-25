@@ -1,0 +1,20 @@
+# LTS shark ads (nuanced predicate). Samplers buy the labels shipped with the crawl (an LLM-like,
+# noisy labeler, as LTS's `-labeling file`); proxy F1 is measured on the 499 expert-labeled ads.
+# Budget 2000 matches the LTS paper (10 rounds x 200 labels).
+# null = natural pool rate (5.5% by the shipped labels); 0.01 / 0.005 drop pool ads labeled positive
+# (the expert test set is unchanged).
+exp: main_shark
+embed_model: sentence-transformers/all-MiniLM-L6-v2
+tasks:
+  lts_shark: {pos_rates: [null, 0.01, 0.005]}
+budgets: [500, 2000]
+batch_size: 25
+seeds: [0, 1, 2, 3, 4]
+label_source: lts_label
+methods:
+  random: {}
+  topk: {}
+  keyword: {}
+  seals_mlp: {}
+  lts_lr: {}
+  qsb: {}

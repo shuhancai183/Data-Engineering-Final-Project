@@ -49,13 +49,12 @@ def main():
     for task, tcfg in cfg["tasks"].items():
         for pos_rate in (tcfg or {}).get("pos_rates", [None]):
             for seed in cfg.get("seeds", [0]):
-                ctx = build_context(task, pos_rate, seed, cfg.get("embed_model", DEFAULT_MODEL), "gold",
-                                    float(cfg.get("test_frac", 0.3)))
-                if not ctx.has_full_gold:
-                    continue
-                train = np.flatnonzero(ctx.pool_mask & (ctx.y >= 0))
+                ctx = build_context(task, pos_rate, seed, cfg.get("embed_model", DEFAULT_MODEL),
+                                    cfg.get("label_source", "gold"), float(cfg.get("test_frac", 0.3)))
+                # train on the labels the labeler would return (gold, or e.g. LLM labels on lts_shark)
+                train = np.flatnonzero(ctx.pool_mask & (ctx.labels >= 0))
                 t0 = time.time()
-                model = fit_lr(ctx.emb[train], ctx.y[train])
+                model = fit_lr(ctx.emb[train], ctx.labels[train])
                 ev = ctx.eval_mask & (ctx.y >= 0)
                 score = predict_proba(model, ctx.emb[ev])
                 yt = ctx.y[ev]
@@ -63,7 +62,7 @@ def main():
                 p, r, f1 = prf(yt, yp)
                 row = {
                     "task": task, "pos_rate": pr_key(pos_rate), "seed": seed,
-                    "n_train": len(train), "n_pos_train": int(ctx.y[train].sum()),
+                    "n_train": len(train), "n_pos_train": int(ctx.labels[train].sum()),
                     "proxy_precision": p, "proxy_recall": r, "proxy_f1": f1,
                     "proxy_macro_f1": macro_f1(yt, yp), "best_threshold_f1": best_threshold_f1(yt, score),
                     "fit_s": time.time() - t0,

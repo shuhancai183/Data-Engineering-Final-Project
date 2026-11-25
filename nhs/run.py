@@ -210,13 +210,17 @@ def main():
                             labeler = Labeler(ctx.labels, flip, seed)
                             summary, trace, _ = run_one(ctx, m, params, budget, batch_size, seed, labeler)
                             n_pos = int((ctx.y == 1).sum())
+                            if ctx.has_full_gold:
+                                base_rate = n_pos / max(1, int((ctx.y >= 0).sum()))
+                            else:  # gold only on the test set: report the pool rate under the labeler
+                                base_rate = float((ctx.labels[ctx.pool_mask] == 1).mean())
                             row = {
                                 "run_id": run_id, "exp": exp, "task": task, "pos_rate": pr_key(pos_rate),
                                 "seed": seed, "budget": budget, "batch_size": batch_size, "method": m,
                                 "base_method": base, "params": json.dumps(full, sort_keys=True),
                                 "label_source": label_source, "flip_rate": flip, "test_frac": test_frac,
                                 "n_rows": len(ctx.y),
-                                "n_pos": n_pos, "base_rate": n_pos / max(1, int((ctx.y >= 0).sum())),
+                                "n_pos": n_pos, "base_rate": base_rate,
                                 "embed_model": model_name, "git_commit": commit, **summary,
                             }
                             _append(runs_path, RUN_FIELDS, [row])

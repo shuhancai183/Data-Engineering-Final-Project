@@ -49,12 +49,13 @@ component separately.
 | `20ng_comp` | development / control | 18,161 | comp.* posts, 26.0% (5 subtypes); rate lowered to 5 / 1 / 0.5% | automatic (scikit-learn) |
 | `toxic_conv` | Chung et al. benchmark | 99,583 | toxic, 7.9%; lowered to 1 / 0.5 / 0.1% | automatic (HuggingFace `mteb/toxic_conversations_50k`) |
 | `jigsaw_threat`, `jigsaw_severe` | naturally rare | ~160K | threat 0.30%; threat / identity hate / severe toxic | Kaggle *Jigsaw Toxic Comment Classification Challenge*: put `train.csv` (or the zip) in `data/raw/jigsaw/` |
-| `lts_shark` | nuanced predicate | ~14.5K ads + ~500 expert labels | real shark / ray / chimaera products | `shark_trophy.csv`, `validation_sharks.csv` from github.com/VIDA-NYU/LTS `data_use_cases/` into `data/raw/lts/` |
+| `lts_shark` | nuanced predicate | 14,491 ads + 499 expert-labeled ads | real shark / ray / chimaera products; 5.5% of ads by the shipped labels, 20% of the expert set | `shark_trophy.csv`, `validation_sharks.csv` from github.com/VIDA-NYU/LTS `data_use_cases/` into `data/raw/lts/` |
 
 Lowering the rate keeps every negative and a subtype-stratified random subset of positives
-(a different subset per seed). On `lts_shark` only the expert rows have labels, so samplers buy labels
-from a single cached labeling pass of a real LLM (`nhs.llm_label`) and F1 is computed on the expert rows,
-which are excluded from sampling.
+(a different subset per seed). On `lts_shark` only the 499 expert-labeled ads have human labels. Samplers
+buy the `label` column shipped with `shark_trophy.csv` (what the LTS code reads with `-labeling file`;
+it behaves like a noisy LLM labeling pass) and proxy F1 is computed on the expert ads, which are never
+sampled. `nhs.llm_label` can relabel the ads with your own LLM to compare labelers.
 
 ## Setup
 
@@ -77,7 +78,15 @@ python -m nhs.plot --exp main_20ng main_toxic ablation
 python -m nhs.upper_bound --config configs/main_toxic.yaml   # proxy trained on all pool labels (reference)
 ```
 
-LLM labels for `lts_shark` (needs `OPENAI_API_KEY` or `DEEPSEEK_API_KEY`; costs a few dollars):
+LTS shark (after placing the two CSVs in `data/raw/lts/`):
+
+```bash
+python -m nhs.data.prepare --task lts_shark
+python -m nhs.embed --task lts_shark
+python -m nhs.run --config configs/main_shark.yaml
+```
+
+Optional: relabel the shark ads with your own LLM (needs `OPENAI_API_KEY` or `DEEPSEEK_API_KEY`; a few dollars):
 
 ```bash
 python -m nhs.llm_label --task lts_shark --provider openai --model gpt-4o-mini --limit 50

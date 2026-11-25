@@ -192,11 +192,19 @@ def build_context(task: str, pos_rate: float | None = None, seed: int = 0,
     """Sub-table for (task, pos_rate, seed). Rows are split into a sampling pool and a fixed test set:
     the expert-labeled rows when the task has them, otherwise a stratified random ``test_frac``."""
     td = load_task(task, model)
-    idx = subset_indices(td.y, td.subtype, pos_rate, seed)
     if label_source == "gold":
         labels = td.y
     else:  # cached LLM labels, e.g. label_source="llm_gpt-4o-mini" -> data/<task>/labels_llm_gpt-4o-mini.npy
         labels = np.load(DATA / task / f"labels_{label_source}.npy").astype(np.int64)
+    if td.eval_mask is not None and pos_rate is not None:
+        # fixed expert test set (lts_shark): lower the rate inside the pool only, using the labels the
+        # labeler returns there; the expert test rows are kept unchanged
+        pool_idx = np.flatnonzero(~td.eval_mask)
+        lab = labels[pool_idx]
+        keep = subset_indices(lab, np.where(lab == 1, 0, -1), pos_rate, seed)
+        idx = np.sort(np.concatenate([pool_idx[keep], np.flatnonzero(td.eval_mask)]))
+    else:
+        idx = subset_indices(td.y, td.subtype, pos_rate, seed)
     if td.eval_mask is not None:
         eval_mask = td.eval_mask[idx]
     elif test_frac > 0:

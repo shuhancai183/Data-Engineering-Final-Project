@@ -76,12 +76,27 @@ python -m nhs.plot --exp main_20ng main_toxic ablation
 - **加方法**：在 `nhs/samplers.py` 里写一个类，实现 `setup / select / update`，再注册到 `SIMPLE`。
 - **加实验**：复制一个 `configs/*.yaml` 改参数。同一组实验再跑会跳过已完成的部分。
 
-## 还差的两个数据集
-- **Jigsaw**：登录 Kaggle，在 *Jigsaw Toxic Comment Classification Challenge* 页面接受规则，下载 `train.csv`（或整个 zip），放进 `data/raw/jigsaw/`，然后运行 `python -m nhs.data.prepare --task jigsaw` 和 `python -m nhs.embed --task jigsaw_threat jigsaw_severe`。
-- **LTS shark**：把 LTS 仓库 `data_use_cases/` 下的 `shark_trophy.csv` 和 `validation_sharks.csv` 放进 `data/raw/lts/`，然后：
-  1. 运行 `python -m nhs.data.prepare --task lts_shark` 和 `python -m nhs.embed --task lts_shark`；
-  2. 设好 API key，按 README 里的命令先试标 50 条，再全量标注，最后 `--compile`；
-  3. 在配置里写 `label_source: llm_gpt-4o-mini` 跑实验。
+## LTS shark 是怎么处理的
+- 数据来自 LTS 仓库 `data_use_cases/` 下的两个文件：
+  - `shark_trophy.csv`：14,533 条 eBay 广告，自带一个 `label` 列（5.5% 正例）；
+  - `validation_sharks.csv`：499 条专家标注的广告（20% 正例）。
+- `label` 列来源没有写明，但从内容看是按语义判断打的，而且有噪声：化石大多被标成负例，鳐鱼皮被标成正例，但也有明信片被标成正例。LTS 的代码用 `-labeling file` 时读的就是这一列。所以我们把它当作一个**有噪声的 LLM 标注器**：采样器从这一列里“买”标签。
+- **评估**只用 499 条专家标签，这些广告永远不会被采样。
+- **局限**：专家集里正例占 20%，比全量数据的 5.5% 高，所以 F1 会比在真实比例下高一些，和 LTS 论文的做法一致。
+- **命令**：
+  ```bash
+  python -m nhs.data.prepare --task lts_shark
+  python -m nhs.embed --task lts_shark
+  python -m nhs.run --config configs/main_shark.yaml
+  ```
+- **可选**：用自己的 LLM 重新标注，对比不同标注器（`nhs.llm_label`，需要 API key）。
+
+## 还差的数据集
+- **Jigsaw**：登录 Kaggle，在 *Jigsaw Toxic Comment Classification Challenge* 页面接受规则，下载 `train.csv`（或整个 zip），放进 `data/raw/jigsaw/`，然后运行：
+  ```bash
+  python -m nhs.data.prepare --task jigsaw
+  python -m nhs.embed --task jigsaw_threat jigsaw_severe
+  ```
 
 ## 常见问题
 - **Random 找到的正例数**应该约等于“预算 × 正例比例”。明显偏多说明有 bug。
