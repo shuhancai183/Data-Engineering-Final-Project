@@ -48,7 +48,7 @@ component separately.
 |---|---|---|---|---|
 | `20ng_comp` | development / control | 18,161 | comp.* posts, 26.0% (5 subtypes); rate lowered to 5 / 1 / 0.5% | automatic (scikit-learn) |
 | `toxic_conv` | Chung et al. benchmark | 99,583 | toxic, 7.9%; lowered to 1 / 0.5 / 0.1% | automatic (HuggingFace `mteb/toxic_conversations_50k`) |
-| `jigsaw_threat`, `jigsaw_severe` | naturally rare | ~160K | threat 0.30%; threat / identity hate / severe toxic | Kaggle *Jigsaw Toxic Comment Classification Challenge*: put `train.csv` (or the zip) in `data/raw/jigsaw/` |
+| `jigsaw_threat`, `jigsaw_severe` | naturally rare | 159,571 | threat 0.30% (478); threat / identity hate / severe toxic 1.87% (3 subtypes), also lowered to 0.5% | Kaggle *Jigsaw Toxic Comment Classification Challenge*: put `train.csv` (or the competition zip) in `data/raw/jigsaw/` |
 | `lts_shark` | nuanced predicate | 14,491 ads + 499 expert-labeled ads | real shark / ray / chimaera products; 5.5% of ads by the shipped labels, 20% of the expert set | `shark_trophy.csv`, `validation_sharks.csv` from github.com/VIDA-NYU/LTS `data_use_cases/` into `data/raw/lts/` |
 
 Lowering the rate keeps every negative and a subtype-stratified random subset of positives
@@ -68,8 +68,8 @@ pip install -r requirements.txt
 ## Reproduce
 
 ```bash
-python -m nhs.data.prepare --task 20ng_comp toxic_conv     # add: jigsaw lts_shark once raw files exist
-python -m nhs.embed --task 20ng_comp toxic_conv
+python -m nhs.data.prepare --task 20ng_comp toxic_conv jigsaw lts_shark   # jigsaw, lts_shark need raw files
+python -m nhs.embed --task 20ng_comp toxic_conv jigsaw_threat jigsaw_severe lts_shark
 python -m pytest tests
 python -m nhs.run --config configs/main_20ng.yaml
 python -m nhs.run --config configs/main_toxic.yaml

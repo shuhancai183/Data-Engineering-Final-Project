@@ -17,6 +17,9 @@
 | LTS shark ads (budget 2000) | 1% | **0.808** | 0.749 | 0.455 | 0.720 | 0.789 | 0.757 |
 | LTS shark ads (budget 500) | 0.5% | **0.712** | 0.259 | 0.141 | 0.635 | 0.407 | 0.096 |
 | LTS shark ads (budget 2000) | 0.5% | 0.724 | 0.544 | 0.591 | 0.729 | **0.740** | 0.657 |
+| Jigsaw: threat (budget 500) | 0.3% | 0.370 | 0.088 | 0.180 | 0.107 | **0.408** | 0.154 |
+| Jigsaw: threat / identity hate / severe (budget 500) | 1.9% | 0.432 | 0.352 | 0.199 | 0.390 | 0.359 | **0.451** |
+| Jigsaw: threat / identity hate / severe (budget 500) | 0.5% | **0.267** | 0.061 | 0.044 | 0.182 | 0.240 | 0.169 |
 
 ## End-to-end F1 of the query result
 
@@ -35,6 +38,9 @@
 | LTS shark ads (budget 2000) | 1% | - | - | - | - | - | - |
 | LTS shark ads (budget 500) | 0.5% | - | - | - | - | - | - |
 | LTS shark ads (budget 2000) | 0.5% | - | - | - | - | - | - |
+| Jigsaw: threat (budget 500) | 0.3% | 0.413 | 0.091 | 0.194 | 0.106 | **0.516** | 0.144 |
+| Jigsaw: threat / identity hate / severe (budget 500) | 1.9% | 0.446 | 0.352 | 0.200 | 0.396 | 0.370 | **0.455** |
+| Jigsaw: threat / identity hate / severe (budget 500) | 0.5% | **0.290** | 0.062 | 0.057 | 0.191 | 0.286 | 0.167 |
 
 ## Positives found with the budget
 
@@ -53,3 +59,6 @@
 | LTS shark ads (budget 2000) | 1% | 112.2 | 18.0 | 27.6 | 40.0 | **124.2** | 29.6 |
 | LTS shark ads (budget 500) | 0.5% | **42.2** | 1.8 | 2.8 | 6.0 | 29.8 | 1.6 |
 | LTS shark ads (budget 2000) | 0.5% | 57.0 | 8.0 | 15.4 | 21.8 | **59.6** | 17.6 |
+| Jigsaw: threat (budget 500) | 0.3% | 90.6 | 1.8 | 4.8 | 28.8 | **136.0** | 3.6 |
+| Jigsaw: threat / identity hate / severe (budget 500) | 1.9% | 200.6 | 8.2 | 5.8 | 94.2 | **247.8** | 49.4 |
+| Jigsaw: threat / identity hate / severe (budget 500) | 0.5% | 56.2 | 2.4 | 3.2 | 32.8 | **86.0** | 12.2 |
