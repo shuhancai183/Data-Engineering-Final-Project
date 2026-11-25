@@ -74,6 +74,7 @@ python -m nhs.run --config configs/main_20ng.yaml
 python -m nhs.run --config configs/main_toxic.yaml
 python -m nhs.run --config configs/ablation.yaml
 python -m nhs.plot --exp main_20ng main_toxic ablation
+python -m nhs.upper_bound --config configs/main_toxic.yaml   # proxy trained on all pool labels (reference)
 ```
 
 LLM labels for `lts_shark` (needs `OPENAI_API_KEY` or `DEEPSEEK_API_KEY`; costs a few dollars):
