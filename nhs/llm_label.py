@@ -30,7 +30,18 @@ from .paths import CACHE, CONFIGS, DATA
 
 PROVIDERS = {
     "openai": ("https://api.openai.com/v1", "OPENAI_API_KEY"),
-    "deepseek": ("https://api.deepseek.com/v1", "DEEPSEEK_API_KEY"),
+    "deepseek": ("https://api.deepseek.com", "DEEPSEEK_API_KEY"),
+}
+# Extra request fields per provider. DeepSeek models think by default; thinking tokens are billed as
+# output and a 10-token answer budget would be spent on them, so classification turns it off.
+EXTRA_BODY = {
+    "deepseek": {"thinking": {"type": "disabled"}},
+}
+# CNY per 1M tokens (peak, off-peak) from api-docs.deepseek.com/zh-cn/quick_start/pricing, Nov 2026.
+# Off-peak = outside Mon-Fri 9:00-12:00 and 14:00-18:00 Beijing time. Used only to print an estimate.
+PRICES_CNY = {
+    "deepseek-flash": {"hit": (0.04, 0.02), "miss": (2.0, 1.0), "out": (8.0, 4.0)},
+    "deepseek-v4-pro": {"hit": (0.30, 0.15), "miss": (9.0, 4.5), "out": (27.0, 13.5)},
 }
 
 
@@ -58,12 +69,15 @@ def parse_label(answer: str) -> int:
     return -1
 
 
-def chat(base_url: str, key: str, model: str, prompt: str, retries: int = 6, timeout: int = 60) -> str:
+def chat(base_url: str, key: str, model: str, prompt: str, extra: dict | None = None,
+         retries: int = 6, timeout: int = 60) -> tuple[str, dict]:
+    """One chat completion; returns (answer text, usage dict)."""
     body = json.dumps({
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0,
         "max_tokens": 10,
+        **(extra or {}),
     }).encode()
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     delay = 2.0
@@ -71,7 +85,8 @@ def chat(base_url: str, key: str, model: str, prompt: str, retries: int = 6, tim
         try:
             req = urllib.request.Request(base_url + "/chat/completions", data=body, headers=headers)
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return json.loads(resp.read())["choices"][0]["message"]["content"]
+                data = json.loads(resp.read())
+                return data["choices"][0]["message"]["content"] or "", data.get("usage", {})
         except urllib.error.HTTPError as e:
             if e.code in (429, 500, 502, 503, 504) and attempt < retries - 1:
                 time.sleep(delay)
@@ -151,24 +166,36 @@ def main():
         todo = todo[: args.limit]
     print(f"{len(done)} rows cached, labeling {len(todo)} rows with {args.provider}/{args.model}", flush=True)
     path.parent.mkdir(parents=True, exist_ok=True)
+    extra = EXTRA_BODY.get(args.provider)
+    tok = {"hit": 0, "miss": 0, "out": 0}
     t0 = time.time()
     with open(path, "a", encoding="utf-8") as f, ThreadPoolExecutor(args.workers) as pool:
         futs = {
-            pool.submit(chat, base_url, key, args.model, template.replace("{text}", texts[i][: args.max_chars])): i
+            pool.submit(chat, base_url, key, args.model, template.replace("{text}", texts[i][: args.max_chars]), extra): i
             for i in todo
         }
         for n, fut in enumerate(as_completed(futs), 1):
             i = futs[fut]
             try:
-                answer = fut.result()
+                answer, usage = fut.result()
             except Exception as e:  # keep going; failed rows are retried on the next run
                 print(f"row {i}: {e}", flush=True)
                 continue
+            hit = int(usage.get("prompt_cache_hit_tokens", 0))
+            tok["hit"] += hit
+            tok["miss"] += int(usage.get("prompt_cache_miss_tokens", usage.get("prompt_tokens", 0) - hit))
+            tok["out"] += int(usage.get("completion_tokens", 0))
             f.write(json.dumps({"row_id": i, "label": parse_label(answer), "raw": answer}, ensure_ascii=False) + "\n")
             if n % 200 == 0:
                 f.flush()
                 print(f"{n}/{len(todo)} done, {time.time() - t0:.0f}s", flush=True)
     print(f"finished in {time.time() - t0:.0f}s; cache: {path}")
+    print(f"tokens: input cache-hit {tok['hit']:,}, input cache-miss {tok['miss']:,}, output {tok['out']:,}")
+    price = PRICES_CNY.get(args.model)
+    if price:
+        for k, name in ((0, "peak"), (1, "off-peak")):
+            cost = sum(tok[t] * price[t][k] for t in tok) / 1e6
+            print(f"estimated cost at {name} prices: {cost:.2f} CNY")
 
 
 if __name__ == "__main__":

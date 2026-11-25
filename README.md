@@ -89,9 +89,9 @@ python -m nhs.run --config configs/main_shark.yaml
 Optional: relabel the shark ads with your own LLM (needs `OPENAI_API_KEY` or `DEEPSEEK_API_KEY`; a few dollars):
 
 ```bash
-python -m nhs.llm_label --task lts_shark --provider openai --model gpt-4o-mini --limit 50
-python -m nhs.llm_label --task lts_shark --provider openai --model gpt-4o-mini
-python -m nhs.llm_label --task lts_shark --model gpt-4o-mini --compile
+python -m nhs.llm_label --task lts_shark --provider deepseek --model deepseek-flash --limit 50   # or --provider openai --model gpt-4o-mini
+python -m nhs.llm_label --task lts_shark --provider deepseek --model deepseek-flash
+python -m nhs.llm_label --task lts_shark --model deepseek-flash --compile
 ```
 
 Runs are resumable: `nhs.run` skips runs already in `results/<exp>/runs.csv`.
