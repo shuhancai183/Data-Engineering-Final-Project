@@ -4,13 +4,22 @@ Experiments never call the API: samplers buy labels from this cache, one LLM cal
 so many methods and seeds can be compared for the price of a single labeling pass.
 
 Usage:
-  python -m nhs.llm_label --task lts_shark --provider openai --model gpt-4o-mini --limit 50   # try a few
-  python -m nhs.llm_label --task lts_shark --provider openai --model gpt-4o-mini              # all rows
-  python -m nhs.llm_label --task lts_shark --model gpt-4o-mini --compile
-      -> data/lts_shark/labels_llm_gpt-4o-mini.npy, used with label_source: llm_gpt-4o-mini
+  python -m nhs.llm_label --task lts_shark --provider deepseek --model deepseek-flash --limit 50   # try a few
+  python -m nhs.llm_label --task lts_shark --provider deepseek --model deepseek-flash              # all rows
+  python -m nhs.llm_label --task lts_shark --model deepseek-flash --compile
+      -> data/lts_shark/labels_llm_deepseek-flash.npy, used with label_source: llm_deepseek-flash
+
+Free, local alternative (Ollama, https://ollama.com; e.g. `ollama pull qwen2.5:3b`):
+  python -m nhs.llm_label --task lts_shark --provider local --model qwen2.5:3b --rows gold   # 499 expert ads
+  python -m nhs.llm_label --task lts_shark --model qwen2.5:3b --compile    # LLM vs expert labels
+      -> data/lts_shark/labels_llm_qwen2.5_3b.npy, used with label_source: llm_qwen2.5_3b
+
+Rows: --rows all (default) | gold (rows with human labels only); --sample N picks a stratified random
+N of those (half positives) for a quick error-rate check.
 
 API keys come from OPENAI_API_KEY / DEEPSEEK_API_KEY (process environment or, on Windows, the
 user environment in the registry, so keys set with `setx` work without a restart). Never commit keys.
+The local provider needs no key.
 """
 from __future__ import annotations
 
@@ -18,6 +27,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -31,6 +41,7 @@ from .paths import CACHE, CONFIGS, DATA
 PROVIDERS = {
     "openai": ("https://api.openai.com/v1", "OPENAI_API_KEY"),
     "deepseek": ("https://api.deepseek.com", "DEEPSEEK_API_KEY"),
+    "local": ("http://localhost:11434/v1", None),  # Ollama's OpenAI-compatible endpoint, no key
 }
 # Extra request fields per provider. DeepSeek models think by default; thinking tokens are billed as
 # output and a 10-token answer budget would be spent on them, so classification turns it off.
@@ -45,7 +56,14 @@ PRICES_CNY = {
 }
 
 
-def get_key(var: str) -> str | None:
+def safe_name(model: str) -> str:
+    """Model name usable in a Windows file name (qwen2.5:3b -> qwen2.5_3b)."""
+    return re.sub(r"[^A-Za-z0-9._-]", "_", model)
+
+
+def get_key(var: str | None) -> str | None:
+    if var is None:  # local server
+        return "local"
     value = os.environ.get(var)
     if value:
         return value
@@ -104,7 +122,7 @@ def chat(base_url: str, key: str, model: str, prompt: str, extra: dict | None = 
 
 def cache_path(task: str, model: str, template: str):
     h = hashlib.sha1(template.encode()).hexdigest()[:8]
-    return CACHE / "llm_labels" / task / f"{model.replace('/', '_')}__{h}.jsonl"
+    return CACHE / "llm_labels" / task / f"{safe_name(model)}__{h}.jsonl"
 
 
 def read_cache(path) -> dict[int, dict]:
@@ -125,6 +143,10 @@ def main():
     ap.add_argument("--base-url", help="override the provider's API base URL")
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--limit", type=int, help="label at most this many new rows (for a trial run)")
+    ap.add_argument("--rows", choices=["all", "gold"], default="all",
+                    help="all rows, or only rows that carry a human label (e.g. the 499 expert shark ads)")
+    ap.add_argument("--sample", type=int, help="stratified random sample of N candidate rows, half positive")
+    ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--max-chars", type=int, default=2000, help="truncate long texts")
     ap.add_argument("--compile", action="store_true", help="write labels_llm_<model>.npy from the cache")
     args = ap.parse_args()
@@ -141,18 +163,21 @@ def main():
         labels = np.full(len(texts), -1, dtype=np.int8)
         for i, r in done.items():
             labels[i] = r["label"]
-        out = DATA / args.task / f"labels_llm_{args.model.replace('/', '_')}.npy"
+        out = DATA / args.task / f"labels_llm_{safe_name(args.model)}.npy"
         np.save(out, labels)
         y = np.load(DATA / args.task / "y.npy")
         known = (y >= 0) & (labels >= 0)
         tp = int(((y == 1) & (labels == 1) & known).sum())
         fp = int(((y == 0) & (labels == 1) & known).sum())
         fn = int(((y == 1) & (labels == 0) & known).sum())
+        tn = int(((y == 0) & (labels == 0) & known).sum())
         p = tp / (tp + fp) if tp + fp else 0.0
         r = tp / (tp + fn) if tp + fn else 0.0
         f1 = 2 * p * r / (p + r) if p + r else 0.0
-        print(f"labeled {int((labels >= 0).sum())}/{len(texts)} rows, unparsed answers: {int((labels < 0).sum())}")
-        print(f"LLM vs gold on {int(known.sum())} rows: precision={p:.3f} recall={r:.3f} F1={f1:.3f}")
+        unparsed = sum(1 for rec in done.values() if rec["label"] < 0)
+        print(f"labeled {len(done)}/{len(texts)} rows; answers that could not be parsed: {unparsed}")
+        print(f"LLM vs human labels on {int(known.sum())} rows: precision={p:.3f} recall={r:.3f} F1={f1:.3f} "
+              f"accuracy={(tp + tn) / max(1, int(known.sum())):.3f} (tp={tp} fp={fp} fn={fn} tn={tn})")
         print(f"wrote {out}")
         return
 
@@ -161,7 +186,21 @@ def main():
     key = get_key(var)
     if not key:
         sys.exit(f"Set {var} first (e.g. PowerShell: setx {var} \"<key>\", then open a new terminal).")
-    todo = [i for i in range(len(texts)) if i not in done]
+    if var is None:  # local server: fail fast with a clear message when it is not running
+        try:
+            urllib.request.urlopen(base_url + "/models", timeout=5).read()
+        except Exception:
+            sys.exit(f"Cannot reach the local model server at {base_url}. Start Ollama and pull the model first "
+                     f"(e.g. `ollama pull {args.model}`).")
+    y = np.load(DATA / args.task / "y.npy")
+    cand = np.flatnonzero(y >= 0) if args.rows == "gold" else np.arange(len(texts))
+    if args.sample:
+        rng = np.random.default_rng(args.seed)
+        pos, neg = cand[y[cand] == 1], cand[y[cand] == 0]
+        n_pos = min(len(pos), args.sample // 2)
+        n_neg = min(len(neg), args.sample - n_pos)
+        cand = np.sort(np.concatenate([rng.choice(pos, n_pos, replace=False), rng.choice(neg, n_neg, replace=False)]))
+    todo = [int(i) for i in cand if int(i) not in done]
     if args.limit:
         todo = todo[: args.limit]
     print(f"{len(done)} rows cached, labeling {len(todo)} rows with {args.provider}/{args.model}", flush=True)

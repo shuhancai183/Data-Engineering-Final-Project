@@ -1,0 +1,19 @@
+# LTS shark with a real (small, local) LLM as the labeler instead of the labels shipped with the crawl.
+# Needs: python -m nhs.llm_label --task lts_shark --provider local --model qwen2.5:3b   (all ads)
+#        python -m nhs.llm_label --task lts_shark --model qwen2.5:3b --compile
+# Compare with main_shark (shipped labels) at the same rates and budget.
+exp: shark_local_llm
+embed_model: sentence-transformers/all-MiniLM-L6-v2
+tasks:
+  lts_shark: {pos_rates: [null, 0.01, 0.005]}
+budgets: [500]
+batch_size: 25
+seeds: [0, 1, 2, 3, 4]
+label_source: llm_qwen2.5_3b
+methods:
+  random: {}
+  topk: {}
+  keyword: {}
+  seals_mlp: {}
+  lts_lr: {}
+  qsb: {}
